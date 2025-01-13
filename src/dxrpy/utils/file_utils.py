@@ -14,8 +14,6 @@ class File:
         Returns:
             tuple: A tuple representing the file for upload.
         """
-        # print file instance type (str, Path, bytes, BinaryIO...)
-        print(type(self.file))
         if isinstance(self.file, (str, Path)):
             path = Path(self.file)
             content_type = (
