@@ -1,0 +1,13 @@
+Metadata-Version: 2.2
+Name: dxrpy
+Version: 0.2.4
+Summary: A client library for DXR
+Author: Darko Stanimirovic
+Author-email: Darko Stanimirovic <dstanimirovic@ohalo.co>
+License: MIT
+Project-URL: Homepage, https://github.com/dstanimirovic/dxrpy
+Project-URL: Issues, https://github.com/dstanimirovic/dxrpy/issues
+Requires-Dist: pytest>=8.3.3
+Requires-Dist: python-dotenv>=1.0.1
+Requires-Dist: requests>=2.32.3
+Dynamic: author

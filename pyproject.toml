@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dxrpy"
+version = "0.2.5"
+description = "A client library for DXR"
+authors = [
+    { name = "Darko Stanimirovic", email = "dstanimirovic@ohalo.co" }
+]
+license = { text = "MIT" }
+dependencies = [
+    # Add your dependencies here
+    "pytest>=8.3.3",
+    # Add your dependencies here
+    "python-dotenv>=1.0.1",
+    # Add your dependencies here
+    "requests>=2.32.3",
+]
+
+[project.urls]
+Homepage = "https://github.com/dstanimirovic/dxrpy"
+Issues = "https://github.com/dstanimirovic/dxrpy/issues"
