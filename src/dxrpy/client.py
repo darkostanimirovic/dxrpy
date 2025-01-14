@@ -13,8 +13,6 @@ class DXRClient:
     DXRClient is a client for interacting with the DXR API.
 
     Attributes:
-        base_url (str): The base URL for the DXR API.
-        api_key (str): The API key for authenticating with the DXR API.
         _on_demand_classifier (OnDemandClassifier): Lazy-loaded on-demand classifier.
         _index (Index): Lazy-loaded index.
     """
