@@ -1,6 +1,5 @@
 from dxrpy.dxr_client import DXRHttpClient
 from .index import Index
-
 from .on_demand_classifier import OnDemandClassifier
 from dotenv import load_dotenv
 import os
@@ -17,13 +16,19 @@ class DXRClient:
         _index (Index): Lazy-loaded index.
     """
 
-    def __init__(self, api_url: str | None = None, api_key: str | None = None):
+    def __init__(
+        self,
+        api_url: str | None = None,
+        api_key: str | None = None,
+        ignore_ssl: bool = False,
+    ):
         """
-        Initializes the DXRClient with the given base URL and API key.
+        Initializes the DXRClient with the given base URL, API key, and SSL verification option.
 
         Args:
             base_url (str): The base URL for the DXR API.
             api_key (str): The API key for authenticating with the DXR API.
+            ignore_ssl (bool): Whether to ignore SSL certificate verification.
         """
         api_url = api_url or os.getenv("DXR_BASE_URL")
         api_key = api_key or os.getenv("DXR_API_KEY")
@@ -31,7 +36,7 @@ class DXRClient:
         if not api_url or not api_key:
             raise ValueError("api_url and api_key must be provided.")
 
-        DXRHttpClient.get_instance(api_url, api_key)
+        DXRHttpClient.get_instance(api_url, api_key, ignore_ssl)
         self._on_demand_classifier = None
         self._index = None
 

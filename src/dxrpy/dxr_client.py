@@ -9,15 +9,17 @@ class DXRHttpClient:
 
     _instance = None
 
-    def __init__(self, api_url: str, api_key: str):
+    def __init__(self, api_url: str, api_key: str, ignore_ssl: bool = False):
         """
-        Initialize the DXRHttpClient with the given API URL and API key.
+        Initialize the DXRHttpClient with the given API URL, API key, and SSL verification option.
 
         :param api_url: The base URL of the DXR API.
         :param api_key: The API key for authentication.
+        :param ignore_ssl: Whether to ignore SSL certificate verification.
         """
         self.api_url = api_url
         self.api_key = api_key
+        self.ignore_ssl = ignore_ssl
         self.session = requests.Session()
         self.session.headers.update(
             {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
@@ -25,13 +27,17 @@ class DXRHttpClient:
 
     @classmethod
     def get_instance(
-        cls, api_url: str | None = None, api_key: str | None = None
+        cls,
+        api_url: str | None = None,
+        api_key: str | None = None,
+        ignore_ssl: bool = False,
     ) -> "DXRHttpClient":
         """
         Get the singleton instance of the DXRHttpClient. If it does not exist, create it.
 
         :param api_url: The base URL of the DXR API (required for first initialization).
         :param api_key: The API key for authentication (required for first initialization).
+        :param ignore_ssl: Whether to ignore SSL certificate verification.
         :return: The singleton instance of DXRHttpClient.
         :raises ValueError: If the instance is not initialized and API URL or API key is not provided.
         """
@@ -40,7 +46,7 @@ class DXRHttpClient:
                 raise ValueError(
                     "API URL and API key must be provided for the first initialization."
                 )
-            cls._instance = cls(api_url, api_key)
+            cls._instance = cls(api_url, api_key, ignore_ssl)
         return cls._instance
 
     def request(self, method: str, endpoint: str, **kwargs) -> dict:
@@ -59,7 +65,9 @@ class DXRHttpClient:
             endpoint = endpoint[1:]
 
         url = f"{self.api_url}{endpoint}"
-        response = self.session.request(method, url, **kwargs)
+        response = self.session.request(
+            method, url, verify=not self.ignore_ssl, **kwargs
+        )
         response.raise_for_status()
         return response.json()
 
