@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "dxrpy"
-version = "0.2.6"
+version = "0.2.7"
 description = "A client library for DXR"
 authors = [
     { name = "Darko Stanimirovic", email = "dstanimirovic@ohalo.co" }
@@ -20,5 +20,5 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/dstanimirovic/dxrpy"
-Issues = "https://github.com/dstanimirovic/dxrpy/issues"
+Homepage = "https://github.com/darkostanimirovic/dxrpy"
+Issues = "https://github.com/darkostanimirovic/dxrpy/issues"
