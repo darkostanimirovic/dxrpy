@@ -19,6 +19,12 @@ pip install dxrpy
 
 To interact with the DXR API, you need to initialize the DXRClient with your API URL and API key.
 
+Parameters:
+
+- `base_url` (str): The base URL for the DXR API.
+- `api_key` (str): The API key for authenticating with the DXR API.
+- `ignore_ssl` (bool): Whether to ignore SSL certificate verification.
+
 ```python
 from dxrpy import DXRClient
 
