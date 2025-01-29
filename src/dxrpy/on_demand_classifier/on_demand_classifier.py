@@ -1,5 +1,6 @@
 import time
 import logging
+import random
 
 from typing import List
 
@@ -75,6 +76,7 @@ class OnDemandClassifier:
         if len(datasource_ids) == 1:
             return datasource_ids[0]
 
+        random.shuffle(datasource_ids)
         for datasource_id in datasource_ids:
             ingester = DatasourceIngester(datasource_id)
             status = ingester.index_status()
