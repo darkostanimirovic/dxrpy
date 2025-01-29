@@ -1,6 +1,6 @@
 Metadata-Version: 2.2
 Name: dxrpy
-Version: 0.2.7
+Version: 0.2.8
 Summary: A client library for DXR
 Author: Darko Stanimirovic
 Author-email: Darko Stanimirovic <dstanimirovic@ohalo.co>
