@@ -80,7 +80,7 @@ class OnDemandClassifier:
         for datasource_id in datasource_ids:
             ingester = DatasourceIngester(datasource_id)
             status = ingester.index_status()
-            if not status["items"][0]["crawl_active"]:
+            if not status["items"] or not status["items"][0]["crawl_active"]:
                 return datasource_id
         return datasource_ids[-1]
 
