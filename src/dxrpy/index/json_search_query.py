@@ -33,17 +33,20 @@ class JsonSearchQueryItem:
 
 
 class JsonSearchQuery:
+
     def __init__(
         self,
         datasource_ids: Optional[List[str]] = None,
         page_number: int = 0,
         page_size: int = 20,
         query_items: Optional[List[JsonSearchQueryItem]] = None,
+        refresh_index: bool = True,
     ):
         self.datasource_ids = datasource_ids or []
         self.page_number = page_number
         self.page_size = page_size
         self.query_items = query_items or []
+        self.refresh_index = refresh_index
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -52,4 +55,5 @@ class JsonSearchQuery:
             "pageNumber": self.page_number,
             "pageSize": self.page_size,
             "filter": {"query_items": [item.to_dict() for item in self.query_items]},
+            "refreshIndex": self.refresh_index,
         }
