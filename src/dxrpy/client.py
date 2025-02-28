@@ -1,6 +1,7 @@
 from dxrpy.dxr_client import DXRHttpClient
 from .index import Index
 from .on_demand_classifier import OnDemandClassifier
+from .document_categories import DocumentCategories
 from dotenv import load_dotenv
 import os
 
@@ -39,6 +40,7 @@ class DXRClient:
         DXRHttpClient.get_instance(api_url, api_key, ignore_ssl)
         self._on_demand_classifier = None
         self._index = None
+        self._document_categories = None
 
     @property
     def on_demand_classifier(self):
@@ -63,3 +65,15 @@ class DXRClient:
         if self._index is None:
             self._index = Index()
         return self._index
+
+    @property
+    def document_categories(self):
+        """
+        Lazy-loads and returns the document categories.
+
+        Returns:
+            DocumentCategories: The document categories.
+        """
+        if self._document_categories is None:
+            self._document_categories = DocumentCategories()
+        return self._document_categories
