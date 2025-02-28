@@ -14,6 +14,8 @@ src/dxrpy/datasource/datasource.py
 src/dxrpy/datasource/types.py
 src/dxrpy/datasource/ingester/__init__.py
 src/dxrpy/datasource/ingester/datasource_ingester.py
+src/dxrpy/document_categories/__init__.py
+src/dxrpy/document_categories/document_categories.py
 src/dxrpy/index/__init__.py
 src/dxrpy/index/annotators.py
 src/dxrpy/index/index.py
