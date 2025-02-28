@@ -71,6 +71,25 @@ class DXRHttpClient:
         response.raise_for_status()
         return response.json()
 
+    def put(self, url: str, **kwargs) -> dict:
+        """
+        Make a PUT request to the DXR API.
+
+        :param url: The API endpoint to call.
+        :param kwargs: Additional arguments to pass to the request.
+        :return: The JSON response from the API.
+        """
+        return self.request("PUT", url, **kwargs)
+
+    def delete(self, url: str, **kwargs) -> None:
+        """
+        Make a DELETE request to the DXR API.
+
+        :param url: The API endpoint to call.
+        :param kwargs: Additional arguments to pass to the request.
+        """
+        self.request("DELETE", url, **kwargs)
+
     def update_headers(self, headers: dict) -> None:
         """
         Update the headers for the HTTP session.
