@@ -66,7 +66,7 @@ class SearchResult:
     def __init__(self, result_data: Dict[str, Any]):
         self.shards = result_data["_shards"]
         self.total_hits = result_data["hits"]["total"]["value"]
-        self.max_score = result_data["hits"]["max_score"]
+        self.max_score = result_data["hits"].get("max_score")
         self._hits = [Hit(hit) for hit in result_data["hits"]["hits"]]
         self.took = result_data["took"]
         self.timed_out = result_data["timed_out"]

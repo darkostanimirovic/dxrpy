@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="dxrpy",
-    version="0.2.11",
+    version="0.2.12",
     description="A client library for DXR",
     author="Darko Stanimirovic",
     author_email="dstanimirovic@ohalo.co",
