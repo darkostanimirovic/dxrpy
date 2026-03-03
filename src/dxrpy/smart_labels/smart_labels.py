@@ -1,9 +1,35 @@
 from __future__ import annotations
 
+from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
 from dxrpy.dxr_client import DXRHttpClient
 from dxrpy.index.json_search_query import JsonSearchQueryItem
+
+
+@dataclass
+class SmartLabelRule:
+    """
+    One saved-query rule within a smart label.
+
+    A smart label can contain multiple rules, each targeting a different set
+    of datasources or using different query conditions.
+
+    :param datasource_ids: Datasources this rule applies to.
+    :param query_items: Query conditions that trigger the label.
+    :param status: ``"RUNNING"`` (active) or ``"PAUSED"``.
+    """
+
+    datasource_ids: List[int]
+    query_items: List[JsonSearchQueryItem] = field(default_factory=list)
+    status: str = "RUNNING"
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "query": {"query_items": [item.to_dict() for item in self.query_items]},
+            "datasourceIds": self.datasource_ids,
+            "status": self.status,
+        }
 
 
 class SmartLabelInfo:
@@ -12,38 +38,47 @@ class SmartLabelInfo:
     def __init__(self, data: Dict[str, Any]):
         self.id: int = data.get("id")
         self.name: str = data.get("name", "")
-        self.color: Optional[str] = data.get("color")
-        self.datasource_ids: List[int] = data.get("datasourceIds") or []
+        self.hex_color: Optional[str] = data.get("hexColor")
+        self.type: str = data.get("type", "STANDARD")
         self.raw: Dict[str, Any] = data
 
     def __repr__(self) -> str:
-        return f"SmartLabelInfo(id={self.id}, name={self.name!r})"
+        return f"SmartLabelInfo(id={self.id}, name={self.name!r}, type={self.type!r})"
 
 
 class SmartLabels:
     """
     CRUD manager for DXR smart labels (tags).
 
-    Smart labels are global rules that automatically tag documents matching
-    a query condition. Unlike extractors, they are not bound to a specific
-    datasource at creation time — instead you specify which datasource(s)
-    they should apply to.
+    Smart labels automatically tag documents matching a query condition.
+    Standard labels (``type="STANDARD"``) are applied manually; smart labels
+    (``type="SMART"``) fire automatically based on saved-query rules.
 
     Access via ``DXRClient.smart_labels``.
 
     Example::
 
         client = DXRClient(api_url=..., api_key=...)
+
+        # Standard tag (manual)
+        tag = client.smart_labels.create(name="Reviewed", hex_color="3498DB")
+
+        # Smart label that fires whenever an SSN annotation exists
         label = client.smart_labels.create(
             name="Has-SSN",
-            datasource_ids=[50148],
-            query_items=[
-                JsonSearchQueryItem(
-                    parameter="annotators",
-                    value="annotation.42",
-                    type="text",
-                    match_strategy="exists",
-                ),
+            hex_color="E74C3C",
+            rules=[
+                SmartLabelRule(
+                    datasource_ids=[50148],
+                    query_items=[
+                        JsonSearchQueryItem(
+                            parameter="annotators",
+                            value="annotation.42",
+                            type="text",
+                            match_strategy="exists",
+                        ),
+                    ],
+                )
             ],
         )
     """
@@ -80,33 +115,36 @@ class SmartLabels:
     def create(
         self,
         name: str,
-        datasource_ids: List[int],
-        query_items: Optional[List[JsonSearchQueryItem]] = None,
-        color: Optional[str] = None,
+        hex_color: str,
+        rules: Optional[List[SmartLabelRule]] = None,
+        description: Optional[str] = None,
         **extra_fields,
     ) -> SmartLabelInfo:
         """
         Create a new smart label.
 
-        :param name: Display name for the label.
-        :param datasource_ids: Datasource(s) this label should apply to.
-        :param query_items: Query conditions that trigger the label.
-            If omitted, the label is created with no conditions (matches nothing).
-        :param color: Optional hex colour string (e.g. ``"#FF5733"``).
-        :param extra_fields: Any additional fields forwarded to the API payload.
+        When *rules* are provided the label is created with
+        ``type="SMART"`` and the rules are stored as ``savedQueryDtoList``.
+        Without rules the label is a plain ``"STANDARD"`` tag.
+
+        :param name: Display name (must be unique).
+        :param hex_color: Hex colour string **without** the ``#`` prefix,
+            e.g. ``"E74C3C"``.
+        :param rules: Optional list of :class:`SmartLabelRule` objects.
+        :param description: Optional description.
+        :param extra_fields: Any additional fields forwarded to the payload.
         :return: The created :class:`SmartLabelInfo`.
         """
         payload: Dict[str, Any] = {
             "name": name,
-            "datasourceIds": datasource_ids,
+            "hexColor": hex_color,
+            "type": "SMART" if rules else "STANDARD",
             **extra_fields,
         }
-        if color is not None:
-            payload["color"] = color
-        if query_items is not None:
-            payload["savedQuery"] = {
-                "query_items": [item.to_dict() for item in query_items]
-            }
+        if description is not None:
+            payload["description"] = description
+        if rules:
+            payload["savedQueryDtoList"] = [r.to_dict() for r in rules]
 
         response = self.client.post("/api/tags", json=payload)
         return SmartLabelInfo(response)
@@ -115,27 +153,33 @@ class SmartLabels:
         self,
         label_id: int,
         name: Optional[str] = None,
-        datasource_ids: Optional[List[int]] = None,
-        query_items: Optional[List[JsonSearchQueryItem]] = None,
-        color: Optional[str] = None,
+        hex_color: Optional[str] = None,
+        rules: Optional[List[SmartLabelRule]] = None,
+        description: Optional[str] = None,
         **extra_fields,
     ) -> SmartLabelInfo:
         """
-        Update an existing smart label. Only supplied fields are sent.
+        Update an existing smart label.
+
+        The backend requires the full tag object on ``PUT /api/tags``, so this
+        method fetches the current state first and merges your changes.
         """
-        payload: Dict[str, Any] = {**extra_fields}
+        current = self.get(label_id)
+        payload: Dict[str, Any] = {
+            **current.raw,
+            **extra_fields,
+        }
         if name is not None:
             payload["name"] = name
-        if color is not None:
-            payload["color"] = color
-        if datasource_ids is not None:
-            payload["datasourceIds"] = datasource_ids
-        if query_items is not None:
-            payload["savedQuery"] = {
-                "query_items": [item.to_dict() for item in query_items]
-            }
+        if hex_color is not None:
+            payload["hexColor"] = hex_color
+        if description is not None:
+            payload["description"] = description
+        if rules is not None:
+            payload["savedQueryDtoList"] = [r.to_dict() for r in rules]
+            payload["type"] = "SMART" if rules else "STANDARD"
 
-        response = self.client.put(f"/api/tags/{label_id}", json=payload)
+        response = self.client.put("/api/tags", json=payload)
         return SmartLabelInfo(response)
 
     def delete(self, label_id: int) -> None:

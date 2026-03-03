@@ -1,1 +1,1 @@
-from .smart_labels import SmartLabelInfo, SmartLabels
+from .smart_labels import SmartLabelInfo, SmartLabelRule, SmartLabels

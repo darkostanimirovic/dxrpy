@@ -1,1 +1,1 @@
-from .extractors import ExtractorInfo, Extractors
+from .extractors import DATA_TYPES, DataType, ExtractorInfo, Extractors

@@ -11,11 +11,14 @@ src/dxrpy.egg-info/requires.txt
 src/dxrpy.egg-info/top_level.txt
 src/dxrpy/datasource/__init__.py
 src/dxrpy/datasource/datasource.py
+src/dxrpy/datasource/manager.py
 src/dxrpy/datasource/types.py
 src/dxrpy/datasource/ingester/__init__.py
 src/dxrpy/datasource/ingester/datasource_ingester.py
 src/dxrpy/document_categories/__init__.py
 src/dxrpy/document_categories/document_categories.py
+src/dxrpy/extractors/__init__.py
+src/dxrpy/extractors/extractors.py
 src/dxrpy/index/__init__.py
 src/dxrpy/index/annotators.py
 src/dxrpy/index/index.py
@@ -25,5 +28,9 @@ src/dxrpy/index/search_results.py
 src/dxrpy/on_demand_classifier/__init__.py
 src/dxrpy/on_demand_classifier/job.py
 src/dxrpy/on_demand_classifier/on_demand_classifier.py
+src/dxrpy/settings_profiles/__init__.py
+src/dxrpy/settings_profiles/settings_profiles.py
+src/dxrpy/smart_labels/__init__.py
+src/dxrpy/smart_labels/smart_labels.py
 src/dxrpy/utils/__init__.py
 src/dxrpy/utils/file_utils.py

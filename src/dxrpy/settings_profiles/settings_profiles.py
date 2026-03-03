@@ -7,9 +7,13 @@ from typing import Any, Dict, List, Optional
 from dxrpy.dxr_client import DXRHttpClient
 from dxrpy.index.json_search_query import JsonSearchQueryItem
 
-# Settings config field IDs (stable across DXR deployments)
-_FIELD_EXTRACTION_ENABLED = 21
-_FIELD_EXTRACTION_WORKFLOW = 22
+# Settings config field IDs for the LLM extraction workflow.
+# NOTE: As of the current schema, fields 21 and 22 are not yet present in the
+# database.  A Liquibase migration must be run to add them before these
+# constants (and set_extraction_workflow) will work.  Update the values below
+# once the migration is merged and the correct IDs are confirmed.
+_FIELD_EXTRACTION_ENABLED = 21   # pending DB migration
+_FIELD_EXTRACTION_WORKFLOW = 22  # pending DB migration
 
 
 @dataclass

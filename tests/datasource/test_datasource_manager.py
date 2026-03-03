@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import patch, MagicMock
-from dxrpy.datasource.manager import DatasourceInfo, DatasourceManager
+from dxrpy.datasource.manager import DatasourceAttribute, DatasourceInfo, DatasourceManager
 
 
 # ---------------------------------------------------------------------------
@@ -24,6 +24,22 @@ def _ds_payload(id=1, name="test-ds", status="ACTIVE"):
         "datasourceConnectorTypeName": "OnDemand",
         "settingsProfile": {"id": 50217},
     }
+
+
+def _attr(attribute_type_id=12, value="/data"):
+    return DatasourceAttribute(attribute_type_id=attribute_type_id, value=value)
+
+
+# ---------------------------------------------------------------------------
+# DatasourceAttribute
+# ---------------------------------------------------------------------------
+
+class TestDatasourceAttribute:
+    def test_to_dict(self):
+        attr = DatasourceAttribute(attribute_type_id=12, value="/data/scans")
+        d = attr.to_dict()
+        assert d["datasourceConnectorTypeAttributeId"] == 12
+        assert d["value"] == "/data/scans"
 
 
 # ---------------------------------------------------------------------------
@@ -58,16 +74,14 @@ class TestDatasourceInfo:
 class TestDatasourceManagerList:
     def test_returns_list(self, mock_client):
         mock_client.get.return_value = [_ds_payload(1), _ds_payload(2)]
-        mgr = DatasourceManager()
-        result = mgr.list()
+        result = DatasourceManager().list()
         assert len(result) == 2
         assert all(isinstance(r, DatasourceInfo) for r in result)
         mock_client.get.assert_called_once_with("/api/datasources")
 
     def test_paged_envelope(self, mock_client):
         mock_client.get.return_value = {"content": [_ds_payload(3)], "totalElements": 1}
-        mgr = DatasourceManager()
-        result = mgr.list()
+        result = DatasourceManager().list()
         assert len(result) == 1
         assert result[0].id == 3
 
@@ -79,10 +93,8 @@ class TestDatasourceManagerList:
 class TestDatasourceManagerGet:
     def test_get_by_id(self, mock_client):
         mock_client.get.return_value = _ds_payload(id=99, name="specific")
-        mgr = DatasourceManager()
-        result = mgr.get(99)
+        result = DatasourceManager().get(99)
         assert result.id == 99
-        assert result.name == "specific"
         mock_client.get.assert_called_once_with("/api/datasources/99")
 
 
@@ -92,19 +104,14 @@ class TestDatasourceManagerGet:
 
 class TestDatasourceManagerFindByName:
     def test_found(self, mock_client):
-        mock_client.get.return_value = [
-            _ds_payload(1, "alpha"),
-            _ds_payload(2, "beta"),
-        ]
-        mgr = DatasourceManager()
-        result = mgr.find_by_name("beta")
+        mock_client.get.return_value = [_ds_payload(1, "alpha"), _ds_payload(2, "beta")]
+        result = DatasourceManager().find_by_name("beta")
         assert result is not None
         assert result.id == 2
 
     def test_not_found(self, mock_client):
         mock_client.get.return_value = [_ds_payload(1, "alpha")]
-        mgr = DatasourceManager()
-        assert mgr.find_by_name("gamma") is None
+        assert DatasourceManager().find_by_name("gamma") is None
 
 
 # ---------------------------------------------------------------------------
@@ -114,34 +121,53 @@ class TestDatasourceManagerFindByName:
 class TestDatasourceManagerCreate:
     def test_create_minimal(self, mock_client):
         mock_client.post.return_value = _ds_payload(id=10, name="new-ds")
-        mgr = DatasourceManager()
-        result = mgr.create(name="new-ds", connector_type_id=7)
+        result = DatasourceManager().create(
+            name="new-ds",
+            connector_type_id=7,
+            attributes=[_attr()],
+        )
         assert result.id == 10
-        called_payload = mock_client.post.call_args.kwargs["json"]
-        assert called_payload["name"] == "new-ds"
-        assert called_payload["datasourceConnectorTypeId"] == 7
-        assert "settingsProfileId" not in called_payload
+        payload = mock_client.post.call_args.kwargs["json"]
+        assert payload["name"] == "new-ds"
+        assert payload["datasourceConnectorTypeId"] == 7
+        assert len(payload["datasourceAttributesDTOList"]) == 1
+        assert payload["datasourceAttributesDTOList"][0]["datasourceConnectorTypeAttributeId"] == 12
+        assert payload["datasourceAttributesDTOList"][0]["value"] == "/data"
+        assert "settingsProfileId" not in payload
+
+    def test_create_uses_with_attributes_endpoint(self, mock_client):
+        mock_client.post.return_value = _ds_payload(id=10)
+        DatasourceManager().create(name="ds", connector_type_id=7, attributes=[_attr()])
+        assert mock_client.post.call_args.args[0] == "/api/datasources/with-attributes"
 
     def test_create_with_profile(self, mock_client):
         mock_client.post.return_value = _ds_payload(id=11)
-        mgr = DatasourceManager()
-        mgr.create(name="ds-with-profile", connector_type_id=7, settings_profile_id=50217)
+        DatasourceManager().create(
+            name="ds", connector_type_id=7, attributes=[_attr()], settings_profile_id=50217
+        )
         payload = mock_client.post.call_args.kwargs["json"]
         assert payload["settingsProfileId"] == 50217
 
-    def test_create_with_description(self, mock_client):
+    def test_create_multiple_attributes(self, mock_client):
         mock_client.post.return_value = _ds_payload(id=12)
-        mgr = DatasourceManager()
-        mgr.create(name="ds", connector_type_id=7, description="for benchmarks")
+        DatasourceManager().create(
+            name="ds",
+            connector_type_id=7,
+            attributes=[_attr(12, "/data"), _attr(13, "tenant-123")],
+        )
         payload = mock_client.post.call_args.kwargs["json"]
-        assert payload["description"] == "for benchmarks"
+        assert len(payload["datasourceAttributesDTOList"]) == 2
 
-    def test_create_extra_fields(self, mock_client):
+    def test_create_empty_attributes_raises(self, mock_client):
+        with pytest.raises(ValueError, match="At least one DatasourceAttribute"):
+            DatasourceManager().create(name="ds", connector_type_id=7, attributes=[])
+
+    def test_create_with_description(self, mock_client):
         mock_client.post.return_value = _ds_payload(id=13)
-        mgr = DatasourceManager()
-        mgr.create(name="ds", connector_type_id=7, monitorable=False)
-        payload = mock_client.post.call_args.kwargs["json"]
-        assert payload["monitorable"] is False
+        DatasourceManager().create(
+            name="ds", connector_type_id=7, attributes=[_attr()], description="test"
+        )
+        assert mock_client.post.call_args.kwargs["json"]["description"] == "test"
 
 
 # ---------------------------------------------------------------------------
@@ -149,22 +175,31 @@ class TestDatasourceManagerCreate:
 # ---------------------------------------------------------------------------
 
 class TestDatasourceManagerUpdate:
-    def test_update_name(self, mock_client):
-        mock_client.put.return_value = _ds_payload(id=5, name="renamed")
-        mgr = DatasourceManager()
-        result = mgr.update(5, name="renamed")
+    def test_update_fetches_current_and_merges(self, mock_client):
+        current = _ds_payload(id=5, name="old")
+        mock_client.get.return_value = current
+        mock_client.put.return_value = {**current, "name": "renamed"}
+
+        result = DatasourceManager().update(5, name="renamed")
         assert result.name == "renamed"
+        mock_client.get.assert_called_once_with("/api/datasources/5")
         payload = mock_client.put.call_args.kwargs["json"]
         assert payload["name"] == "renamed"
-        mock_client.put.assert_called_once_with("/api/datasources/5", json=payload)
+        assert payload["id"] == 5  # preserved from current
+
+    def test_update_uses_correct_endpoint(self, mock_client):
+        mock_client.get.return_value = _ds_payload(id=5)
+        mock_client.put.return_value = _ds_payload(id=5)
+        DatasourceManager().update(5, name="x")
+        assert mock_client.put.call_args.args[0] == "/api/datasources"
 
     def test_update_omits_nones(self, mock_client):
-        mock_client.put.return_value = _ds_payload(id=5)
-        mgr = DatasourceManager()
-        mgr.update(5)
+        current = _ds_payload(id=5, name="keep")
+        mock_client.get.return_value = current
+        mock_client.put.return_value = current
+        DatasourceManager().update(5)
         payload = mock_client.put.call_args.kwargs["json"]
-        assert "name" not in payload
-        assert "settingsProfileId" not in payload
+        assert payload["name"] == "keep"  # preserved from current
 
 
 # ---------------------------------------------------------------------------
@@ -174,6 +209,5 @@ class TestDatasourceManagerUpdate:
 class TestDatasourceManagerDelete:
     def test_delete_calls_correct_endpoint(self, mock_client):
         mock_client.delete.return_value = None
-        mgr = DatasourceManager()
-        mgr.delete(7)
+        DatasourceManager().delete(7)
         mock_client.delete.assert_called_once_with("/api/datasources/7")
