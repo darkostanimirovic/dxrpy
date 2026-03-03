@@ -2,6 +2,15 @@
 
 All notable changes to this project are documented here.
 
+## [0.3.2] - 2026-03-03
+
+### Fixed
+
+- **Extractors**: correct endpoint (`/api/metadata-extractors`), `promptTemplate` field, single `dataType` enum (`TEXT`|`NUMBER`|`BOOLEAN`) replacing entity-type list, added `temperature` / `useDocumentContent` / `modelId` fields, `"type": "llm"` discriminator in payload, validation on create/update.
+- **Datasources**: create now uses `/api/datasources/with-attributes`; required `DatasourceAttribute` list (`datasourceConnectorTypeAttributeId` + `value`); `update()` fetches current state before PUT.
+- **Smart Labels**: `hexColor` field (no `#` prefix); `type` discriminator `"SMART"`/`"STANDARD"`; `savedQueryDtoList` structure with per-rule `datasourceIds`; new `SmartLabelRule` dataclass; `update()` uses `PUT /api/tags` with full body.
+- **Settings Profiles**: `set_extraction_workflow` field IDs 21/22 flagged as pending DB migration.
+
 ## [0.3.1] - 2026-03-03
 
 ### Fixed
