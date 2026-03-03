@@ -69,6 +69,8 @@ class DXRHttpClient:
             method, url, verify=not self.ignore_ssl, **kwargs
         )
         response.raise_for_status()
+        if response.status_code == 204 or not response.content:
+            return None
         return response.json()
 
     def put(self, url: str, **kwargs) -> dict:
@@ -80,6 +82,16 @@ class DXRHttpClient:
         :return: The JSON response from the API.
         """
         return self.request("PUT", url, **kwargs)
+
+    def patch(self, url: str, **kwargs) -> dict:
+        """
+        Make a PATCH request to the DXR API.
+
+        :param url: The API endpoint to call.
+        :param kwargs: Additional arguments to pass to the request.
+        :return: The JSON response from the API, or None for 204 responses.
+        """
+        return self.request("PATCH", url, **kwargs)
 
     def delete(self, url: str, **kwargs) -> None:
         """
