@@ -4,8 +4,9 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "dxrpy"
-version = "0.3.0"
+version = "0.3.1"
 description = "A client library for DXR"
+readme = "README.md"
 authors = [
     { name = "Darko Stanimirovic", email = "dstanimirovic@ohalo.co" }
 ]

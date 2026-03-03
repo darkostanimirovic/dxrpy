@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented here.
 
+## [0.3.1] - 2026-03-03
+
+### Fixed
+
+- Link `README.md` as PyPI project description via `readme` field in `pyproject.toml`.
+
 ## [0.3.0] - 2026-03-03
 
 ### Added
