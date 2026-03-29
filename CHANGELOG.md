@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented here.
 
+## [0.4.1] - 2026-03-29
+
+### Fixed
+
+- **README**: corrected `run_job()` example to use `RunJobResult` (no longer returns raw hits), fixed extractor `prompt_template`/`data_type` params.
+
 ## [0.4.0] - 2026-03-29
 
 ### Added

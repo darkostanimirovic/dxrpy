@@ -1,8 +1,7 @@
-import time
 
 import pytest
 from pathlib import Path
-from unittest.mock import patch, MagicMock, call
+from unittest.mock import patch, MagicMock
 
 from dxrpy.on_demand_classifier.on_demand_classifier import (
     OnDemandClassifier,

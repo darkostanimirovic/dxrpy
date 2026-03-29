@@ -41,10 +41,10 @@ Run files through the on-demand classification pipeline.
 from dxrpy.utils import File
 
 files = [File("path/to/file1.txt"), File("path/to/file2.txt")]
-hits = client.on_demand_classifier.run_job(files, datasource_ids=[123])
+result = client.on_demand_classifier.run_job(files, datasource_id=123)
 
-for hit in hits:
-    print(hit.labels)
+for hit in result.hits:
+    print(hit.file_name, hit.labels)
 ```
 
 ---
@@ -120,15 +120,15 @@ LLM metadata extractors define a prompt and optional target data types.
 ```python
 extractor = client.extractors.create(
     name="PII extractor",
-    prompt="Extract all personal information from the text. Return a JSON object with keys: name, email, phone.",
-    data_types=["PERSON", "EMAIL_ADDRESS", "PHONE_NUMBER"],
+    prompt_template="Extract all personal information from: {{document_text}}",
+    data_type="TEXT",
 )
 print(extractor.id)
 
 # CRUD
 extractors = client.extractors.list()
 extractor = client.extractors.find_by_name("PII extractor")
-client.extractors.update(extractor.id, prompt="Updated prompt...")
+client.extractors.update(extractor.id, prompt_template="Updated prompt...")
 client.extractors.delete(extractor.id)
 ```
 

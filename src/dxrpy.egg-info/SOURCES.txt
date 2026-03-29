@@ -34,3 +34,4 @@ src/dxrpy/smart_labels/__init__.py
 src/dxrpy/smart_labels/smart_labels.py
 src/dxrpy/utils/__init__.py
 src/dxrpy/utils/file_utils.py
+tests/test_dxr_client.py
