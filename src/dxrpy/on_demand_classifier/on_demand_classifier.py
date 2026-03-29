@@ -2,7 +2,9 @@ import time
 import logging
 import random
 
-from typing import List
+from dataclasses import dataclass
+from pathlib import Path
+from typing import List, Optional, Union
 
 from dxrpy.dxr_client import DXRHttpClient
 from ..datasource.ingester.datasource_ingester import DatasourceIngester
@@ -13,6 +15,19 @@ from .job import OnDemandClassifierJob
 from ..utils.file_utils import File
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class RunJobResult:
+    """Result of an :meth:`OnDemandClassifier.run_job` call.
+
+    Carries the hits *and* the job metadata so callers can correlate
+    results with a specific scan.
+    """
+
+    hits: List[Hit]
+    job: OnDemandClassifierJob
+    scan_id: Optional[int] = None
 
 
 class OnDemandClassifier:
@@ -85,47 +100,95 @@ class OnDemandClassifier:
         return datasource_ids[-1]
 
     def run_job(
-        self, files: List[File], datasource_ids: List[int], sleep: int = 1
-    ) -> List[Hit]:
+        self,
+        files: List[Union[File, str, Path]],
+        datasource_ids: List[int],
+        sleep: int = 1,
+        timeout: Optional[int] = None,
+        page_size: int = 100,
+    ) -> RunJobResult:
         """
-        Runs a classification job with the given files and data source ID.
+        Submit files for classification, wait for completion, and return results.
+
+        This is the primary high-level method for running ODC jobs.  It
+        handles datasource selection, job submission, polling, and result
+        retrieval in a single call.
 
         Args:
-            files (List[File]): A list of File objects to process.
-            datasource_ids (List[int]): A list of data source IDs.
-            sleep (int): The sleep interval between job status checks.
+            files: Files to classify. Accepts :class:`File` objects, file
+                paths (``str`` or ``Path``), or a mix.
+            datasource_ids: One or more datasource IDs to submit to.
+                When multiple are provided, an available (non-crawling)
+                datasource is selected automatically.
+            sleep: Seconds between poll requests (default 1).
+            timeout: Maximum seconds to wait for the job to finish.
+                ``None`` means wait indefinitely (original behaviour).
+            page_size: Number of hits to request per search page
+                (default 100).
 
         Returns:
-            List[Hit]: A list of hits from the job.
+            RunJobResult: Contains the list of :class:`Hit` objects, the
+                finished :class:`OnDemandClassifierJob`, and the
+                ``scan_id``.
+
+        Raises:
+            RuntimeError: If the job enters the ``FAILED`` state.
+            TimeoutError: If *timeout* is set and the job does not finish
+                in time.
         """
+        wrapped_files = [
+            f if isinstance(f, File) else File(f) for f in files
+        ]
+
         selected_datasource_id = self.select_available_datasource(datasource_ids)
 
-        job = self.create(files, selected_datasource_id)
+        job = self.create(wrapped_files, selected_datasource_id)
+        deadline = (time.time() + timeout) if timeout is not None else None
+        last_state = ""
+
         while True:
             job = self.get(job.id, selected_datasource_id)
-            logger.debug(f"[{job.id}] Status: {job.state}")
+            state = job.state or ""
+
+            if state != last_state:
+                logger.info("Job %s → %s", job.id, state)
+                last_state = state
+            else:
+                logger.debug("Job %s state: %s", job.id, state)
 
             if job.finished():
-                logger.debug(f"Job {job.id} finished")
                 break
-            elif job.failed():
-                logger.debug(f"Job {job.id} failed")
-                return []
+            if job.failed():
+                raise RuntimeError(f"ODC job {job.id} failed")
+
+            if deadline is not None and time.time() >= deadline:
+                raise TimeoutError(
+                    f"ODC job {job.id} timed out after {timeout}s "
+                    f"(last state: {last_state})"
+                )
 
             time.sleep(sleep)
 
         # Ensure smart labels are applied by waiting a bit more
         time.sleep(0.3)
 
+        scan_id = job.datasource_scan_id
+
         # Get metadata for all files in this scan
         query = JsonSearchQuery(
+            page_size=page_size,
             query_items=[
                 JsonSearchQueryItem(
                     parameter="dxr#datasource_scan_id",
-                    value=job.datasource_scan_id,
+                    value=scan_id,
                     type="number",
                 )
             ]
         )
         search_result = Index().search(query)
-        return search_result.hits
+
+        return RunJobResult(
+            hits=search_result.hits,
+            job=job,
+            scan_id=scan_id,
+        )

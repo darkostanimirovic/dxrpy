@@ -12,19 +12,19 @@ class DocumentCategories:
         self.client: DXRHttpClient = DXRHttpClient.get_instance()
 
     def get_all(self) -> List[DocumentCategory]:
-        response = self.client.get("/api/document-categories")
+        response = self.client.get("/document-categories")
         return [DocumentCategory(data) for data in response]
 
     def create(self, category_data: Dict[str, Any]) -> DocumentCategory:
-        response = self.client.post("/api/document-categories", json=category_data)
+        response = self.client.post("/document-categories", json=category_data)
         return DocumentCategory(response)
 
     def update(self, category_data: Dict[str, Any]) -> DocumentCategory:
-        response = self.client.put("/api/document-categories", json=category_data)
+        response = self.client.put("/document-categories", json=category_data)
         return DocumentCategory(response)
 
     def replace_all(self, categories_data: List[Dict[str, Any]]) -> None:
-        self.client.post("/api/document-categories/replace-all", json=categories_data)
+        self.client.post("/document-categories/replace-all", json=categories_data)
 
     def delete(self, category_id: int) -> None:
-        self.client.delete(f"/api/document-categories/{category_id}")
+        self.client.delete(f"/document-categories/{category_id}")

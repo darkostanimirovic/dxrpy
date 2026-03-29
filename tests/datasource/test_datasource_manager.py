@@ -77,7 +77,7 @@ class TestDatasourceManagerList:
         result = DatasourceManager().list()
         assert len(result) == 2
         assert all(isinstance(r, DatasourceInfo) for r in result)
-        mock_client.get.assert_called_once_with("/api/datasources")
+        mock_client.get.assert_called_once_with("/datasources")
 
     def test_paged_envelope(self, mock_client):
         mock_client.get.return_value = {"content": [_ds_payload(3)], "totalElements": 1}
@@ -95,7 +95,7 @@ class TestDatasourceManagerGet:
         mock_client.get.return_value = _ds_payload(id=99, name="specific")
         result = DatasourceManager().get(99)
         assert result.id == 99
-        mock_client.get.assert_called_once_with("/api/datasources/99")
+        mock_client.get.assert_called_once_with("/datasources/99")
 
 
 # ---------------------------------------------------------------------------
@@ -138,7 +138,7 @@ class TestDatasourceManagerCreate:
     def test_create_uses_with_attributes_endpoint(self, mock_client):
         mock_client.post.return_value = _ds_payload(id=10)
         DatasourceManager().create(name="ds", connector_type_id=7, attributes=[_attr()])
-        assert mock_client.post.call_args.args[0] == "/api/datasources/with-attributes"
+        assert mock_client.post.call_args.args[0] == "/datasources/with-attributes"
 
     def test_create_with_profile(self, mock_client):
         mock_client.post.return_value = _ds_payload(id=11)
@@ -158,9 +158,11 @@ class TestDatasourceManagerCreate:
         payload = mock_client.post.call_args.kwargs["json"]
         assert len(payload["datasourceAttributesDTOList"]) == 2
 
-    def test_create_empty_attributes_raises(self, mock_client):
-        with pytest.raises(ValueError, match="At least one DatasourceAttribute"):
-            DatasourceManager().create(name="ds", connector_type_id=7, attributes=[])
+    def test_create_empty_attributes(self, mock_client):
+        mock_client.post.return_value = _ds_payload(id=14)
+        DatasourceManager().create(name="ds", connector_type_id=21, attributes=[])
+        payload = mock_client.post.call_args.kwargs["json"]
+        assert payload["datasourceAttributesDTOList"] == []
 
     def test_create_with_description(self, mock_client):
         mock_client.post.return_value = _ds_payload(id=13)
@@ -182,7 +184,7 @@ class TestDatasourceManagerUpdate:
 
         result = DatasourceManager().update(5, name="renamed")
         assert result.name == "renamed"
-        mock_client.get.assert_called_once_with("/api/datasources/5")
+        mock_client.get.assert_called_once_with("/datasources/5")
         payload = mock_client.put.call_args.kwargs["json"]
         assert payload["name"] == "renamed"
         assert payload["id"] == 5  # preserved from current
@@ -191,7 +193,7 @@ class TestDatasourceManagerUpdate:
         mock_client.get.return_value = _ds_payload(id=5)
         mock_client.put.return_value = _ds_payload(id=5)
         DatasourceManager().update(5, name="x")
-        assert mock_client.put.call_args.args[0] == "/api/datasources"
+        assert mock_client.put.call_args.args[0] == "/datasources"
 
     def test_update_omits_nones(self, mock_client):
         current = _ds_payload(id=5, name="keep")
@@ -210,4 +212,53 @@ class TestDatasourceManagerDelete:
     def test_delete_calls_correct_endpoint(self, mock_client):
         mock_client.delete.return_value = None
         DatasourceManager().delete(7)
-        mock_client.delete.assert_called_once_with("/api/datasources/7")
+        mock_client.delete.assert_called_once_with("/datasources/7")
+
+
+# ---------------------------------------------------------------------------
+# DatasourceManager.find_by_connector_type
+# ---------------------------------------------------------------------------
+
+class TestDatasourceManagerFindByConnectorType:
+    def test_found(self, mock_client):
+        mock_client.get.return_value = [
+            _ds_payload(1, "alpha"),
+            _ds_payload(2, "beta"),
+        ]
+        result = DatasourceManager().find_by_connector_type(7)
+        assert result is not None
+        assert result.id == 1  # first match
+
+    def test_not_found(self, mock_client):
+        mock_client.get.return_value = [_ds_payload(1, "alpha")]
+        assert DatasourceManager().find_by_connector_type(999) is None
+
+    def test_empty_list(self, mock_client):
+        mock_client.get.return_value = []
+        assert DatasourceManager().find_by_connector_type(7) is None
+
+
+# ---------------------------------------------------------------------------
+# DatasourceManager.find_by_name_prefix
+# ---------------------------------------------------------------------------
+
+class TestDatasourceManagerFindByNamePrefix:
+    def test_found_multiple(self, mock_client):
+        mock_client.get.return_value = [
+            _ds_payload(1, "bench__exp1"),
+            _ds_payload(2, "bench__exp2"),
+            _ds_payload(3, "other-ds"),
+        ]
+        result = DatasourceManager().find_by_name_prefix("bench__")
+        assert len(result) == 2
+        assert {r.id for r in result} == {1, 2}
+
+    def test_none_match(self, mock_client):
+        mock_client.get.return_value = [_ds_payload(1, "alpha")]
+        result = DatasourceManager().find_by_name_prefix("missing-")
+        assert result == []
+
+    def test_empty_prefix_matches_all(self, mock_client):
+        mock_client.get.return_value = [_ds_payload(1, "a"), _ds_payload(2, "b")]
+        result = DatasourceManager().find_by_name_prefix("")
+        assert len(result) == 2

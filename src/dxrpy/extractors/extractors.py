@@ -66,13 +66,13 @@ class Extractors:
 
     def list(self) -> List[ExtractorInfo]:
         """Return all extractors visible to the authenticated user."""
-        response = self.client.get("/api/metadata-extractors")
+        response = self.client.get("/metadata-extractors")
         items = response if isinstance(response, list) else response.get("content", response)
         return [ExtractorInfo(item) for item in items]
 
     def get(self, extractor_id: int) -> ExtractorInfo:
         """Fetch a single extractor by ID."""
-        response = self.client.get(f"/api/metadata-extractors/{extractor_id}")
+        response = self.client.get(f"/metadata-extractors/{extractor_id}")
         return ExtractorInfo(response)
 
     def find_by_name(self, name: str) -> Optional[ExtractorInfo]:
@@ -133,7 +133,7 @@ class Extractors:
         if model_id is not None:
             payload["modelId"] = model_id
 
-        response = self.client.post("/api/metadata-extractors", json=payload)
+        response = self.client.post("/metadata-extractors", json=payload)
         return ExtractorInfo(response)
 
     def update(
@@ -181,9 +181,9 @@ class Extractors:
         if model_id is not None:
             payload["modelId"] = model_id
 
-        response = self.client.put(f"/api/metadata-extractors/{extractor_id}", json=payload)
+        response = self.client.put(f"/metadata-extractors/{extractor_id}", json=payload)
         return ExtractorInfo(response)
 
     def delete(self, extractor_id: int) -> None:
         """Delete an extractor by ID."""
-        self.client.delete(f"/api/metadata-extractors/{extractor_id}")
+        self.client.delete(f"/metadata-extractors/{extractor_id}")

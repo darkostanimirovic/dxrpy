@@ -92,7 +92,7 @@ class TestSettingsProfilesRead:
         mock_client.get.return_value = [_profile_payload(1), _profile_payload(2)]
         result = SettingsProfiles().list()
         assert len(result) == 2
-        mock_client.get.assert_called_once_with("/api/settings-profiles")
+        mock_client.get.assert_called_once_with("/settings-profiles")
 
     def test_list_paged_envelope(self, mock_client):
         mock_client.get.return_value = {"content": [_profile_payload(3)]}
@@ -103,7 +103,7 @@ class TestSettingsProfilesRead:
         mock_client.get.return_value = _profile_payload(id=50217)
         result = SettingsProfiles().get(50217)
         assert result.id == 50217
-        mock_client.get.assert_called_once_with("/api/settings-profiles/50217")
+        mock_client.get.assert_called_once_with("/settings-profiles/50217")
 
     def test_find_by_name_found(self, mock_client):
         mock_client.get.return_value = [
@@ -254,7 +254,7 @@ class TestSetExtractionWorkflow:
         )
         mock_client.patch.assert_called_once()
         url = mock_client.patch.call_args.args[0]
-        assert url == "/api/settings-profiles/settings/config"
+        assert url == "/settings-profiles/settings/config"
 
 
 # ---------------------------------------------------------------------------
@@ -269,3 +269,48 @@ class TestSetConfig:
         payload = mock_client.patch.call_args.kwargs["json"]
         assert payload["profile_id"] == 50217
         assert payload["settings_profile_configurations"] == configurations
+
+
+# ---------------------------------------------------------------------------
+# SettingsProfiles.get_data_classes
+# ---------------------------------------------------------------------------
+
+class TestGetDataClasses:
+    def test_returns_list(self, mock_client):
+        mock_client.get.return_value = [10, 20, 30]
+        result = SettingsProfiles().get_data_classes(50217)
+        assert result == [10, 20, 30]
+        mock_client.get.assert_called_once_with(
+            "/settings-profiles/50217/data-classes"
+        )
+
+    def test_empty_list(self, mock_client):
+        mock_client.get.return_value = []
+        assert SettingsProfiles().get_data_classes(1) == []
+
+    def test_non_list_response_returns_empty(self, mock_client):
+        """Backend occasionally returns a dict instead of a list."""
+        mock_client.get.return_value = {"message": "unexpected"}
+        assert SettingsProfiles().get_data_classes(1) == []
+
+
+# ---------------------------------------------------------------------------
+# SettingsProfiles.add_data_classes
+# ---------------------------------------------------------------------------
+
+class TestAddDataClasses:
+    def test_posts_class_ids(self, mock_client):
+        mock_client.post.return_value = None
+        SettingsProfiles().add_data_classes(50217, [10, 20])
+        mock_client.post.assert_called_once_with(
+            "/settings-profiles/50217/add-data-classes",
+            json=[10, 20],
+        )
+
+    def test_empty_list(self, mock_client):
+        mock_client.post.return_value = None
+        SettingsProfiles().add_data_classes(50217, [])
+        mock_client.post.assert_called_once_with(
+            "/settings-profiles/50217/add-data-classes",
+            json=[],
+        )

@@ -71,14 +71,25 @@ class DatasourceManager:
 
     def list(self) -> List[DatasourceInfo]:
         """Return all datasources visible to the authenticated user."""
-        response = self.client.get("/api/datasources")
+        response = self.client.get("/datasources")
         items = response if isinstance(response, list) else response.get("content", response)
         return [DatasourceInfo(item) for item in items]
 
     def get(self, datasource_id: int) -> DatasourceInfo:
-        """Fetch a single datasource by ID."""
-        response = self.client.get(f"/api/datasources/{datasource_id}")
-        return DatasourceInfo(response)
+        """Fetch a single datasource by ID.
+
+        Falls back to the list endpoint when the single-item endpoint
+        is not available (older DXR versions).
+        """
+        try:
+            response = self.client.get(f"/datasources/{datasource_id}")
+            return DatasourceInfo(response)
+        except Exception:
+            # Fallback: filter from the full list
+            for ds in self.list():
+                if ds.id == datasource_id:
+                    return ds
+            raise ValueError(f"Datasource {datasource_id} not found")
 
     def find_by_name(self, name: str) -> Optional[DatasourceInfo]:
         """Return the first datasource whose name matches exactly, or None."""
@@ -86,6 +97,17 @@ class DatasourceManager:
             if ds.name == name:
                 return ds
         return None
+
+    def find_by_connector_type(self, connector_type_id: int) -> Optional[DatasourceInfo]:
+        """Return the first datasource with the given connector type, or None."""
+        for ds in self.list():
+            if ds.connector_type_id == connector_type_id:
+                return ds
+        return None
+
+    def find_by_name_prefix(self, prefix: str) -> List[DatasourceInfo]:
+        """Return all datasources whose name starts with *prefix*."""
+        return [ds for ds in self.list() if ds.name.startswith(prefix)]
 
     # ------------------------------------------------------------------
     # Write
@@ -98,32 +120,32 @@ class DatasourceManager:
         attributes: List[DatasourceAttribute],
         settings_profile_id: Optional[int] = None,
         description: Optional[str] = None,
+        status: str = "ENABLED",
         **extra_fields,
     ) -> DatasourceInfo:
         """
         Create a new datasource.
 
-        The backend requires at least one :class:`DatasourceAttribute` entry
-        that maps to a connector-type attribute (e.g. the root path for a
-        filesystem connector, or the tenant ID for a cloud connector).
+        Some connector types (e.g. On-Demand Classifier) have no required
+        attributes and accept an empty *attributes* list.
 
         :param name: Human-readable name.
         :param connector_type_id: Connector type ID
             (``datasourceConnectorTypeId``).
-        :param attributes: One or more :class:`DatasourceAttribute` objects
-            describing the connector configuration. The list must not be empty.
+        :param attributes: :class:`DatasourceAttribute` objects describing
+            the connector configuration.  May be empty for connector types
+            that have no required attributes.
         :param settings_profile_id: Optional settings profile to attach.
         :param description: Optional description.
+        :param status: Datasource status. Defaults to ``"ENABLED"`` so the
+            datasource is immediately usable after creation.
         :param extra_fields: Any additional fields forwarded to the payload.
         :return: The created :class:`DatasourceInfo`.
-        :raises ValueError: If *attributes* is empty.
         """
-        if not attributes:
-            raise ValueError("At least one DatasourceAttribute is required.")
-
         payload: Dict[str, Any] = {
             "name": name,
             "datasourceConnectorTypeId": connector_type_id,
+            "status": status,
             "datasourceAttributesDTOList": [a.to_dict() for a in attributes],
             **extra_fields,
         }
@@ -132,7 +154,7 @@ class DatasourceManager:
         if settings_profile_id is not None:
             payload["settingsProfileId"] = settings_profile_id
 
-        response = self.client.post("/api/datasources/with-attributes", json=payload)
+        response = self.client.post("/datasources/with-attributes", json=payload)
         return DatasourceInfo(response)
 
     def update(
@@ -162,9 +184,9 @@ class DatasourceManager:
         if settings_profile_id is not None:
             payload["settingsProfileId"] = settings_profile_id
 
-        response = self.client.put("/api/datasources", json=payload)
+        response = self.client.put("/datasources", json=payload)
         return DatasourceInfo(response)
 
     def delete(self, datasource_id: int) -> None:
         """Delete a datasource by ID."""
-        self.client.delete(f"/api/datasources/{datasource_id}")
+        self.client.delete(f"/datasources/{datasource_id}")

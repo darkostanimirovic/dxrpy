@@ -85,7 +85,7 @@ class TestExtractorsList:
         result = Extractors().list()
         assert len(result) == 2
         assert all(isinstance(r, ExtractorInfo) for r in result)
-        mock_client.get.assert_called_once_with("/api/metadata-extractors")
+        mock_client.get.assert_called_once_with("/metadata-extractors")
 
     def test_paged_envelope(self, mock_client):
         mock_client.get.return_value = {"content": [_extractor_payload(5)]}
@@ -102,7 +102,7 @@ class TestExtractorsGet:
         mock_client.get.return_value = _extractor_payload(id=594)
         result = Extractors().get(594)
         assert result.id == 594
-        mock_client.get.assert_called_once_with("/api/metadata-extractors/594")
+        mock_client.get.assert_called_once_with("/metadata-extractors/594")
 
 
 # ---------------------------------------------------------------------------
@@ -198,7 +198,7 @@ class TestExtractorsCreate:
     def test_uses_correct_endpoint(self, mock_client):
         mock_client.post.return_value = _extractor_payload(id=105)
         Extractors().create(name="X", prompt_template="{{document_text}}", data_type="TEXT")
-        assert mock_client.post.call_args.args[0] == "/api/metadata-extractors"
+        assert mock_client.post.call_args.args[0] == "/metadata-extractors"
 
 
 # ---------------------------------------------------------------------------
@@ -215,7 +215,7 @@ class TestExtractorsUpdate:
         assert result.name == "New"
 
         # Should have fetched current state first
-        mock_client.get.assert_called_once_with("/api/metadata-extractors/5")
+        mock_client.get.assert_called_once_with("/metadata-extractors/5")
         # PUT payload includes id and merged fields
         payload = mock_client.put.call_args.kwargs["json"]
         assert payload["id"] == 5
@@ -235,7 +235,7 @@ class TestExtractorsUpdate:
         mock_client.get.return_value = _extractor_payload(id=7)
         mock_client.put.return_value = _extractor_payload(id=7)
         Extractors().update(7, name="Updated")
-        assert mock_client.put.call_args.args[0] == "/api/metadata-extractors/7"
+        assert mock_client.put.call_args.args[0] == "/metadata-extractors/7"
 
     def test_invalid_data_type_raises(self, mock_client):
         mock_client.get.return_value = _extractor_payload(id=1)
@@ -251,4 +251,4 @@ class TestExtractorsDelete:
     def test_delete(self, mock_client):
         mock_client.delete.return_value = None
         Extractors().delete(99)
-        mock_client.delete.assert_called_once_with("/api/metadata-extractors/99")
+        mock_client.delete.assert_called_once_with("/metadata-extractors/99")

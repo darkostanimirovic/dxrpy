@@ -92,13 +92,13 @@ class SmartLabels:
 
     def list(self) -> List[SmartLabelInfo]:
         """Return all smart labels visible to the authenticated user."""
-        response = self.client.get("/api/tags")
+        response = self.client.get("/tags")
         items = response if isinstance(response, list) else response.get("content", response)
         return [SmartLabelInfo(item) for item in items]
 
     def get(self, label_id: int) -> SmartLabelInfo:
         """Fetch a single smart label by ID."""
-        response = self.client.get(f"/api/tags/{label_id}")
+        response = self.client.get(f"/tags/{label_id}")
         return SmartLabelInfo(response)
 
     def find_by_name(self, name: str) -> Optional[SmartLabelInfo]:
@@ -146,7 +146,7 @@ class SmartLabels:
         if rules:
             payload["savedQueryDtoList"] = [r.to_dict() for r in rules]
 
-        response = self.client.post("/api/tags", json=payload)
+        response = self.client.post("/tags", json=payload)
         return SmartLabelInfo(response)
 
     def update(
@@ -179,9 +179,9 @@ class SmartLabels:
             payload["savedQueryDtoList"] = [r.to_dict() for r in rules]
             payload["type"] = "SMART" if rules else "STANDARD"
 
-        response = self.client.put("/api/tags", json=payload)
+        response = self.client.put("/tags", json=payload)
         return SmartLabelInfo(response)
 
     def delete(self, label_id: int) -> None:
         """Delete a smart label by ID."""
-        self.client.delete(f"/api/tags/{label_id}")
+        self.client.delete(f"/tags/{label_id}")

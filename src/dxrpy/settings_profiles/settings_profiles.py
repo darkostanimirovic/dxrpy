@@ -109,13 +109,13 @@ class SettingsProfiles:
 
     def list(self) -> List[SettingsProfileInfo]:
         """Return all settings profiles visible to the authenticated user."""
-        response = self.client.get("/api/settings-profiles")
+        response = self.client.get("/settings-profiles")
         items = response if isinstance(response, list) else response.get("content", response)
         return [SettingsProfileInfo(item) for item in items]
 
     def get(self, profile_id: int) -> SettingsProfileInfo:
         """Fetch a single settings profile by ID."""
-        response = self.client.get(f"/api/settings-profiles/{profile_id}")
+        response = self.client.get(f"/settings-profiles/{profile_id}")
         return SettingsProfileInfo(response)
 
     def find_by_name(self, name: str) -> Optional[SettingsProfileInfo]:
@@ -124,6 +124,35 @@ class SettingsProfiles:
             if profile.name == name:
                 return profile
         return None
+
+    # ------------------------------------------------------------------
+    # Data classes (annotator configuration)
+    # ------------------------------------------------------------------
+
+    def get_data_classes(self, profile_id: int) -> List[int]:
+        """Return the list of data-class IDs configured on a profile.
+
+        Data classes control which annotators (regex, dictionary, NER, etc.)
+        run during document scans for datasources linked to this profile.
+        """
+        response = self.client.get(
+            f"/settings-profiles/{profile_id}/data-classes"
+        )
+        return list(response) if isinstance(response, list) else []
+
+    def add_data_classes(self, profile_id: int, class_ids: List[int]) -> None:
+        """Add data-class IDs to a settings profile.
+
+        Idempotent — IDs already present are silently ignored by the backend.
+
+        :param profile_id: Target settings profile.
+        :param class_ids: Data-class IDs to add (e.g. annotator IDs for
+            regex or dictionary classifiers).
+        """
+        self.client.post(
+            f"/settings-profiles/{profile_id}/add-data-classes",
+            json=class_ids,
+        )
 
     # ------------------------------------------------------------------
     # Extraction workflow
@@ -170,7 +199,7 @@ class SettingsProfiles:
             ],
         }
 
-        self.client.patch("/api/settings-profiles/settings/config", json=payload)
+        self.client.patch("/settings-profiles/settings/config", json=payload)
 
     # ------------------------------------------------------------------
     # Raw config access
@@ -192,4 +221,4 @@ class SettingsProfiles:
             "profile_id": profile_id,
             "settings_profile_configurations": configurations,
         }
-        self.client.patch("/api/settings-profiles/settings/config", json=payload)
+        self.client.patch("/settings-profiles/settings/config", json=payload)

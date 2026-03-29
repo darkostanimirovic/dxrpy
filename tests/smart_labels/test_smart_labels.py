@@ -102,7 +102,7 @@ class TestSmartLabelsRead:
         result = SmartLabels().list()
         assert len(result) == 2
         assert all(isinstance(r, SmartLabelInfo) for r in result)
-        mock_client.get.assert_called_once_with("/api/tags")
+        mock_client.get.assert_called_once_with("/tags")
 
     def test_list_paged_envelope(self, mock_client):
         mock_client.get.return_value = {"content": [_label_payload(3)]}
@@ -113,7 +113,7 @@ class TestSmartLabelsRead:
         mock_client.get.return_value = _label_payload(id=42, name="Confidential")
         result = SmartLabels().get(42)
         assert result.id == 42
-        mock_client.get.assert_called_once_with("/api/tags/42")
+        mock_client.get.assert_called_once_with("/tags/42")
 
     def test_find_by_name_found(self, mock_client):
         mock_client.get.return_value = [_label_payload(1, "Alpha"), _label_payload(2, "Beta")]
@@ -188,7 +188,7 @@ class TestSmartLabelsUpdate:
 
         result = SmartLabels().update(5, name="New")
         assert result.name == "New"
-        mock_client.get.assert_called_once_with("/api/tags/5")
+        mock_client.get.assert_called_once_with("/tags/5")
         payload = mock_client.put.call_args.kwargs["json"]
         assert payload["name"] == "New"
         assert payload["id"] == 5
@@ -197,8 +197,8 @@ class TestSmartLabelsUpdate:
         mock_client.get.return_value = _label_payload(id=5)
         mock_client.put.return_value = _label_payload(id=5)
         SmartLabels().update(5, name="X")
-        # PUT /api/tags (no ID in path)
-        assert mock_client.put.call_args.args[0] == "/api/tags"
+        # PUT /tags (no ID in path)
+        assert mock_client.put.call_args.args[0] == "/tags"
 
     def test_update_rules(self, mock_client):
         current = _label_payload(id=5)
@@ -226,4 +226,4 @@ class TestSmartLabelsDelete:
     def test_delete(self, mock_client):
         mock_client.delete.return_value = None
         SmartLabels().delete(9)
-        mock_client.delete.assert_called_once_with("/api/tags/9")
+        mock_client.delete.assert_called_once_with("/tags/9")

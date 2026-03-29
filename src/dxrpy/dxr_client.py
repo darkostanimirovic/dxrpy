@@ -13,10 +13,15 @@ class DXRHttpClient:
         """
         Initialize the DXRHttpClient with the given API URL, API key, and SSL verification option.
 
-        :param api_url: The base URL of the DXR API.
+        :param api_url: The base URL of the DXR API.  The ``/api`` path segment
+            is appended automatically when missing, so callers may pass either
+            ``https://host`` or ``https://host/api``.
         :param api_key: The API key for authentication.
         :param ignore_ssl: Whether to ignore SSL certificate verification.
         """
+        api_url = api_url.rstrip("/")
+        if not api_url.endswith("/api"):
+            api_url += "/api"
         self.api_url = api_url
         self.api_key = api_key
         self.ignore_ssl = ignore_ssl

@@ -112,3 +112,110 @@ def test_took(search_result):
 
 def test_timed_out(search_result):
     assert not search_result.timed_out
+
+
+# ---------------------------------------------------------------------------
+# Hit.tag_ids
+# ---------------------------------------------------------------------------
+
+def test_tag_ids(hit):
+    assert hit.tag_ids == [1, 2]
+
+
+def test_tag_ids_empty():
+    """Hit with no tags returns an empty list."""
+    data = {"_source": {"annotations": ""}}
+    hit = Hit(data)
+    assert hit.tag_ids == []
+
+
+# ---------------------------------------------------------------------------
+# Hit.annotator_ids
+# ---------------------------------------------------------------------------
+
+def test_annotator_ids(hit):
+    assert hit.annotator_ids() == {1}
+
+
+def test_annotator_ids_multiple():
+    data = {
+        "_source": {
+            "annotations": "[foo, 0, 3, 5][bar, 4, 7, 10][baz, 8, 11, 5]",
+        },
+    }
+    hit = Hit(data)
+    assert hit.annotator_ids() == {5, 10}
+
+
+def test_annotator_ids_empty():
+    data = {"_source": {"annotations": ""}}
+    hit = Hit(data)
+    assert hit.annotator_ids() == set()
+
+
+# ---------------------------------------------------------------------------
+# Hit.to_dict / from_dict round-trip
+# ---------------------------------------------------------------------------
+
+def test_to_dict(hit):
+    d = hit.to_dict()
+    assert d["file_name"] == "test_file.py"
+    assert d["category"] == "test_category"
+    assert d["tag_ids"] == [1, 2]
+    assert len(d["annotations"]) == 1
+    ann = d["annotations"][0]
+    assert ann["annotator_id"] == 1
+    assert ann["value"] == "test"
+    assert ann["start"] == 0
+    assert ann["end"] == 4
+
+
+def test_from_dict_round_trip(hit):
+    """to_dict → from_dict preserves all observable properties."""
+    d = hit.to_dict()
+    restored = Hit.from_dict(d)
+    assert restored.file_name == hit.file_name
+    assert restored.category == hit.category
+    assert restored.tag_ids == hit.tag_ids
+    assert restored.annotator_ids() == hit.annotator_ids()
+
+
+def test_from_dict_multiple_annotations():
+    data = {
+        "file_name": "doc.txt",
+        "category": "financial",
+        "tag_ids": [7],
+        "annotations": [
+            {"annotator_id": 3, "value": "555-1234", "start": 0, "end": 8},
+            {"annotator_id": 16, "value": "123 Main St", "start": 10, "end": 21},
+        ],
+    }
+    hit = Hit.from_dict(data)
+    assert hit.file_name == "doc.txt"
+    assert hit.category == "financial"
+    assert hit.tag_ids == [7]
+    assert hit.annotator_ids() == {3, 16}
+    assert len(hit.annotators) == 2
+
+
+def test_from_dict_empty():
+    """from_dict with minimal/empty data doesn't crash."""
+    hit = Hit.from_dict({})
+    assert hit.file_name == ""
+    assert hit.category == ""
+    assert hit.tag_ids == []
+    assert hit.annotator_ids() == set()
+
+
+def test_from_dict_no_client_required():
+    """from_dict works without DXRHttpClient initialised."""
+    hit = Hit.from_dict({"file_name": "x.txt", "annotations": []})
+    assert hit.file_name == "x.txt"
+    assert hit.client is None
+
+
+def test_from_dict_labels_raises_without_client():
+    """Accessing labels on an offline hit raises RuntimeError."""
+    hit = Hit.from_dict({"tag_ids": [99]})
+    with pytest.raises(RuntimeError, match="DXRHttpClient is not initialised"):
+        _ = hit.labels
